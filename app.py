@@ -155,12 +155,23 @@ def advice():
               "Write 3 short, specific tips, under 90 words total, in plain sentences. Never invent numbers.")
     try:
         if HF_TOKEN:                                     # Hugging Face is used first because it has a free tier
-            r = requests.post("https://router.huggingface.co/v1/chat/completions",
-                              headers={"Authorization": f"Bearer {HF_TOKEN}"},
-                              json={"model": HF_MODEL, "max_tokens": 300,
-                                    "messages": [{"role": "system", "content": system},
-                                                 {"role": "user", "content": facts}]}, timeout=30)
-            return jsonify(advice=r.json()["choices"][0]["message"]["content"].strip())
+            err = ""
+            for m in dict.fromkeys([HF_MODEL, "deepseek-ai/DeepSeek-V3-0324"]):   # try the chosen model, then a backup
+                try:
+                    r = requests.post("https://router.huggingface.co/v1/chat/completions",
+                                      headers={"Authorization": f"Bearer {HF_TOKEN}"},
+                                      json={"model": m, "max_tokens": 400,
+                                            "messages": [{"role": "system", "content": system},
+                                                         {"role": "user", "content": facts}]}, timeout=12)
+                    body = r.json() if r.content else {}
+                    text = ((body.get("choices") or [{}])[0].get("message", {}).get("content") or "").strip() if r.ok else ""
+                    if text:
+                        return jsonify(advice=text)
+                    err = f"{m}: HTTP {r.status_code} {str(body.get('error', body))[:150]}"
+                except Exception as e:
+                    err = f"{m}: {type(e).__name__}"
+                print("HF advisor error:", err, flush=True)
+            return jsonify(error="The advisor could not respond. Details: " + err), 502
         r = requests.post("https://api.anthropic.com/v1/messages",
                           headers={"x-api-key": AI_KEY, "anthropic-version": "2023-06-01"},
                           json={"model": MODEL, "max_tokens": 300, "system": system,
