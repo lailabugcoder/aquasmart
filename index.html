@@ -240,7 +240,7 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
  </div>
  <div class="card"><h3>Your habits</h3><div id="habits"></div><h3 style="margin-top:16px">Tips for you</h3><ul id="tips"></ul></div>
 </div>
-<footer>Estimates assume about 30% of household water is used outdoors and that smart irrigation trims that by about 30%. Recommendations and tips come from simple rules. The optional AI advisor uses Google’s Gemini model. Your entries are saved in this browser only. Watering rules shown are Broward County’s year-round schedule, and temporary drought orders can override them, so check sfwmd.gov. Built for the Congressional App Challenge 2026.</footer>
+<footer>Estimates assume about 30% of household water is used outdoors and that smart irrigation trims that by about 30%. Recommendations and tips come from simple rules. The optional AI advisor uses Google’s Gemini model. Your entries are saved in this browser, and also to your account when you are signed in. Watering rules shown are Broward County’s year-round schedule, and temporary drought orders can override them, so check sfwmd.gov. Built for the Congressional App Challenge 2026.</footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -712,6 +712,68 @@ aquaSupabase.auth.onAuthStateChange(() => {
 
 refreshAccountStatus();
 trackAquaEvent("page_view");
+ /* ---- Per-account data ---- */
+let aquaKey = "aq", aquaUser = null, cloudTimer = null;
+const _origStoreSet = store.set;
+store.set = (k, v) => {
+  _origStoreSet(k === "aq" ? aquaKey : k, v);
+  if (k === "aq" && aquaUser) {
+    clearTimeout(cloudTimer);
+    cloudTimer = setTimeout(saveCloudSettings, 800);
+  }
+};
+
+async function saveCloudSettings() {
+  if (!aquaUser) return;
+  const { wk, ...rest } = st;
+  const { error } = await aquaSupabase.from("aqua_settings").upsert(
+    { user_id: aquaUser.id, data: rest, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" });
+  if (error) showAccountStatus("Could not save settings to your account: " + error.message);
+}
+
+async function applyAccountData() {
+  aquaUser = null;
+  try { aquaUser = await getAquaUser(); } catch (e) {}
+  aquaKey = aquaUser ? "aq_" + aquaUser.id : "aq";
+  st = store.get(aquaKey, { g: "", r: 5, h: {}, wk: [] });
+  if (aquaUser) {
+    try {
+      const [weekly, settings] = await Promise.all([
+        aquaSupabase.from("weekly_usage").select("gallons").eq("user_id", aquaUser.id)
+          .order("created_at", { ascending: true }).limit(100),
+        aquaSupabase.from("aqua_settings").select("data").eq("user_id", aquaUser.id).maybeSingle()
+      ]);
+      if (settings.data && settings.data.data) st = { ...st, ...settings.data.data, wk: st.wk };
+      if (weekly.data && weekly.data.length) st.wk = weekly.data.map(r => Number(r.gallons)).slice(-8);
+    } catch (e) {}
+  }
+  $("g").value = st.g;
+  $("r").value = st.r;
+  $("plant").value = st.p || "garden";
+  $("addr").value = st.a || "";
+  render();
+  load();
+}
+
+document.addEventListener("click", async (e) => {
+  if (!e.target || e.target.id !== "addwk") return;
+  const gallons = Number($("w").value);
+  if (!(gallons > 0)) return;
+  try {
+    const result = await saveWeeklyUsage({ gallons });
+    showAccountStatus(result.saved
+      ? "Week saved to your account."
+      : "Sign in to save this week to your account. It is saved in this browser for now.");
+  } catch (err) {
+    showAccountStatus("Could not save to your account: " + err.message);
+  }
+  setTimeout(refreshAccountStatus, 4000);
+}, true);
+
+aquaSupabase.auth.onAuthStateChange((event) => {
+  if (["INITIAL_SESSION", "SIGNED_IN", "SIGNED_OUT"].includes(event)) setTimeout(applyAccountData, 0);
+});
 </script>
 
 </body>
