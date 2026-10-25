@@ -7,6 +7,20 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[]
+)
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY")
+
+supabase_admin = (
+    create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+    if SUPABASE_URL and SUPABASE_SECRET_KEY
+    else None
+)
 KEY = os.environ.get("OPENWEATHER_KEY", "")
 TOKEN = os.environ.get("PI_TOKEN", "")
 CITY = os.environ.get("CITY", "Pembroke Pines")
@@ -30,7 +44,36 @@ PLANTS = {
 }
 DAYS = {"odd": (2, 5), "even": (3, 6)}   # Broward year-round rule: odd = Wed/Sat, even = Thu/Sun
 NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+ALLOWED_ANALYTICS_EVENTS = {
+    "page_view",
+    "advisor_used",
+    "weekly_log_added",
+    "habit_toggled",
+    "plant_selected",
+    "watering_recommendation_viewed",
+}
 
+@app.post("/api/analytics")
+@limiter.limit("30 per minute")
+def record_analytics():
+    if supabase_admin is None:
+        return jsonify({"error": "Analytics not configured"}), 503
+
+    body = request.get_json(silent=True) or {}
+    event_name = body.get("event")
+
+    if event_name not in ALLOWED_ANALYTICS_EVENTS:
+        return jsonify({"error": "Invalid event"}), 400
+
+    try:
+        supabase_admin.table("analytics_events").insert({
+            "event_name": event_name
+        }).execute()
+    except Exception:
+        app.logger.exception("Analytics insert failed")
+        return jsonify({"error": "Could not record event"}), 502
+
+    return jsonify({"ok": True}), 202
 
 def weather():
     if time.time() - WX["t"] > 600:
