@@ -281,5 +281,42 @@ for(let i=0;i<9;i++){const b=document.createElement('i'),s=10+Math.random()*30;b
  b.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s}px;animation-duration:${14+Math.random()*14}s;animation-delay:-${Math.random()*20}s`;document.body.appendChild(b)}
 render();load();setInterval(load,20000);
 </script>
+<script>
+(function(){
+  var HAB=[['am','I water before 8am','Water before 8am so less evaporates before it soaks in.'],
+   ['rain','I skip watering after rain','Skip watering for 24 hours after rain.'],
+   ['leak','I checked for leaks this month','Check toilets and hoses for leaks. A silent toilet leak can waste hundreds of gallons a day.'],
+   ['mulch','I use mulch on plant beds','Add 2 to 3 inches of mulch so soil stays moist longer.'],
+   ['barrel','I collect rain in a barrel','Collect rain in a barrel for free irrigation water.']];
+  var KEY='aq_habits', saved={};
+  try{saved=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){}
+  var card=document.createElement('div');card.className='card';card.id='habitscard';
+  card.innerHTML='<h3>Your habits</h3><div id="hab2"></div><h3 style="margin-top:16px">Tips for you</h3><ul id="tips2"></ul>';
+  var anchor=null;
+  document.querySelectorAll('h3').forEach(function(h){if(h.textContent.indexOf('Your numbers')>-1)anchor=h.closest('.card')});
+  if(anchor)anchor.after(card);else(document.querySelector('main')||document.body).appendChild(card);
+  function weeks(){try{var s=JSON.parse(localStorage.getItem('aq'));return((s&&s.wk)||[]).map(Number).filter(function(x){return x>0})}catch(e){return[]}}
+  function drawHabits(){
+    document.getElementById('hab2').innerHTML=HAB.map(function(h){
+      return '<label><input type="checkbox" data-h="'+h[0]+'"'+(saved[h[0]]?' checked':'')+'> '+h[1]+'</label>'}).join('');
+  }
+  function drawTips(){
+    var tips=HAB.filter(function(h){return !saved[h[0]]}).slice(0,3).map(function(h){return h[2]});
+    var w=weeks();
+    if(w.length>=3){
+      var last=w[w.length-1],avg=w.slice(0,-1).reduce(function(a,b){return a+b},0)/(w.length-1);
+      if(last>avg*1.25)tips.unshift('Your latest week ('+last+' gallons) is '+Math.round((last/avg-1)*100)+'% above your average. Check irrigation lines, toilets and hoses for leaks.');
+    }
+    if(!tips.length)tips=['Great habits. Keep logging weekly usage to catch spikes early.'];
+    document.getElementById('tips2').innerHTML=tips.map(function(t){return '<li>'+t+'</li>'}).join('');
+  }
+  card.addEventListener('change',function(e){
+    var k=e.target.getAttribute('data-h');
+    if(k){saved[k]=e.target.checked;try{localStorage.setItem(KEY,JSON.stringify(saved))}catch(x){}drawTips()}
+  });
+  document.addEventListener('click',function(){setTimeout(drawTips,60)});
+  drawHabits();drawTips();
+})();
+</script>
 </body>
 </html>
