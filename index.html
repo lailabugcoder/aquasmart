@@ -164,7 +164,7 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 <p class="hero">Water smarter.<br>Waste less.</p>
 <p class="sub">Live weather for Pembroke Pines, Florida, plus optional Raspberry Pi sensors that tell you when your plants actually need water.</p>
 <span class="pill" id="badge">Loading…</span>
-<p style="color:#fff;margin:14px 0 0"><label style="display:inline">What are you watering?<select id="plant"><option value="lawn">St. Augustine lawn</option><option value="hibiscus">Hibiscus</option><option value="areca">Areca palm</option><option value="garden">Vegetable garden</option><option value="native">Florida-friendly natives</option><option value="succulent">Succulents</option></select></label> <label style="display:inline;margin-left:14px">My street number is<select id="addr"><option value="">not set</option><option value="odd">odd</option><option value="even">even</option></select></label> <button id="demobtn" style="margin-left:14px">Preview with demo Pi data</button></p>
+
 
  
 <section id="account-panel" class="account-panel">
@@ -194,6 +194,8 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
   </p>
 </section>
 
+<p style="color:#fff;margin:14px 0 0"><label style="display:inline">What are you watering?<select id="plant"><option value="lawn">St. Augustine lawn</option><option value="hibiscus">Hibiscus</option><option value="areca">Areca palm</option><option value="garden">Vegetable garden</option><option value="native">Florida-friendly natives</option><option value="succulent">Succulents</option></select></label> <label style="display:inline;margin-left:14px">My street number is<select id="addr"><option value="">not set</option><option value="odd">odd</option><option value="even">even</option></select></label> <button id="demobtn" style="margin-left:14px">Preview with demo Pi data</button></p>
+ 
 <h2>Live conditions</h2>
 <div class="grid">
  <div class="card"><h3>Outside temperature</h3><div class="num" id="ot">—</div><div class="unit">°F, <span id="desc">checking weather</span></div></div>
@@ -402,11 +404,14 @@ render();load();setInterval(load,20000);
   drawHabits();drawTips();
 })();
 </script>
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
- 
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
 const aquaSupabase = window.supabase.createClient(
-  "PASTE_YOUR_SUPABASE_PROJECT_URL",
-  "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY"
+
+  "https://xpnqkvdjsocrdoxrtmky.supabase.co",
+  "sb_publishable_d6KrletTKI1kuuNKNXxYAg_AF8ZWmSq"
 );
 
 const accountStatus = document.getElementById("account-status");
@@ -704,8 +709,11 @@ aquaSupabase.auth.onAuthStateChange(() => {
   setTimeout(() => refreshAccountStatus(), 0);
 });
 
+
 refreshAccountStatus();
 trackAquaEvent("page_view");
+</script>
 
 </body>
 </html>
+
