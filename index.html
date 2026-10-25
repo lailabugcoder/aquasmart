@@ -172,7 +172,7 @@ async function load(){
   $('fill').style.height=(p.soil!=null?Math.max(4,p.soil):0)+'%';
   $('badge').textContent=s.online?'● Raspberry Pi online':'Weather only. Pi sensors are optional.';
   $('rec').className='card rec '+s.level;$('recmsg').textContent=s.message;
-  const f=s.forecast;$('rc').textContent=f?f.rain_chance:'—';$('rcu').textContent=f&&f.hours!=null?`percent, rain likely in about ${f.hours} hour${f.hours===1?'':'s'};
+   const f=s.forecast;$('rc').textContent=f?f.rain_chance:'—';$('rcu').textContent=f&&f.hours!=null?`percent, rain likely in about ${f.hours} hour${f.hours===1?'':'s'}`:'percent chance of rain';
   $('aibox').hidden=!s.ai;
   $('rule').textContent=s.rule||'Pick odd or even above to see your Broward watering rules.';$('tip').textContent=s.tip;
   if(s.demo)$('badge').textContent='Demo mode: simulated Pi data';
@@ -281,7 +281,7 @@ for(let i=0;i<9;i++){const b=document.createElement('i'),s=10+Math.random()*30;b
  b.style.cssText=`left:${Math.random()*100}%;width:${s}px;height:${s}px;animation-duration:${14+Math.random()*14}s;animation-delay:-${Math.random()*20}s`;document.body.appendChild(b)}
 render();load();setInterval(load,20000);
 </script>
-<script>
+<script type="text/plain">
 (function(){
   var HAB=[['am','I water before 8am','Water before 8am so less evaporates before it soaks in.'],
    ['rain','I skip watering after rain','Skip watering for 24 hours after rain.'],
