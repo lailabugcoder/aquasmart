@@ -67,6 +67,24 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 <div class="card" id="chartcard" hidden style="margin-top:14px"><h3>Sensor history from the Pi</h3><canvas id="chart" height="110"></canvas></div>
 <p><button id="leakbtn">Try the leak alert demo</button></p>
 
+ <h2>💧 Your Water Savings</h2>
+<div class="grid">
+  <div class="card">
+    <h3>Estimated monthly savings</h3>
+    <div class="num" id="monthlySaved">$0.00</div>
+    <div class="unit">Potential savings from smarter irrigation</div>
+  </div>
+  <div class="card">
+    <h3>Projected yearly savings</h3>
+    <div class="num" id="yearlySaved">$0.00</div>
+    <div class="unit">If your current usage and rate stay similar</div>
+  </div>
+  <div class="card">
+    <h3>Estimated water conserved</h3>
+    <div class="num" id="gallonsSaved">0</div>
+    <div class="unit">Gallons per month</div>
+  </div>
+</div>
 <h2>My water, no hardware needed</h2>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
  <div class="card"><h3>Your numbers</h3>
@@ -113,8 +131,18 @@ function draw(h){
 }
 function render(){
  $('habits').innerHTML=HABITS.map(([k,t])=>`<label><input type="checkbox" data-k="${k}" ${st.h[k]?'checked':''}> ${t}</label>`).join('');
- const g=+st.g,r=+st.r||5,saved=g*.3*.3,usd=saved/1000*r;
- $('res').innerHTML=g>0?`You could save about <b>${Math.round(saved)} gallons</b> and <b>$${usd.toFixed(2)}</b> a month ($${(usd*12).toFixed(2)} a year) on outdoor watering.`:'Enter last month’s gallons to see your estimate.';
+const g = Math.max(0, Number(st.g) || 0);
+const r = Math.max(0, Number(st.r) || 0);
+const saved = g * 0.30 * 0.30;
+const usd = saved / 1000 * r;
+
+$('res').innerHTML = g > 0
+  ? `You could save about <b>${Math.round(saved).toLocaleString()} gallons</b> and <b>$${usd.toFixed(2)}</b> per month ($${(usd * 12).toFixed(2)} per year) on outdoor watering.`
+  : 'Enter last month’s gallons to see your estimate.';
+
+$('monthlySaved').textContent = '$' + usd.toFixed(2);
+$('yearlySaved').textContent = '$' + (usd * 12).toFixed(2);
+$('gallonsSaved').textContent = Math.round(saved).toLocaleString();oFixed(2)} a year) on outdoor watering.`:'Enter last month’s gallons to see your estimate.';
  const tips=HABITS.filter(([k])=>!st.h[k]).slice(0,3).map(x=>x[2]),wk=st.wk;
  if(wk.length>=3){const last=wk[wk.length-1],avg=wk.slice(0,-1).reduce((a,b)=>a+b,0)/(wk.length-1);
   if(last>avg*1.25)tips.unshift(`Your latest week (${last} gallons) is ${Math.round((last/avg-1)*100)}% above your average. Check irrigation lines, toilets and hoses for leaks.`)}
