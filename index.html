@@ -129,26 +129,48 @@ function draw(h){
  if(chart){chart.data.labels=L;chart.data.datasets.forEach((d,i)=>d.data=ds[i].data);chart.update()}
  else chart=new Chart($('chart'),{type:'line',data:{labels:L,datasets:ds},options:{plugins:{legend:{position:'bottom'}}}});
 }
+
 function render(){
- $('habits').innerHTML=HABITS.map(([k,t])=>`<label><input type="checkbox" data-k="${k}" ${st.h[k]?'checked':''}> ${t}</label>`).join('');
-const g = Math.max(0, Number(st.g) || 0);
-const r = Math.max(0, Number(st.r) || 0);
-const saved = g * 0.30 * 0.30;
-const usd = saved / 1000 * r;
+  $('habits').innerHTML=HABITS.map(([k,t])=>
+    `<label><input type="checkbox" data-k="${k}" ${st.h[k]?'checked':''}> ${t}</label>`
+  ).join('');
 
-$('res').innerHTML = g > 0
-  ? `You could save about <b>${Math.round(saved).toLocaleString()} gallons</b> and <b>$${usd.toFixed(2)}</b> per month ($${(usd * 12).toFixed(2)} per year) on outdoor watering.`
-  : 'Enter last month’s gallons to see your estimate.';
+  const g=Math.max(0,Number(st.g)||0);
+  const r=Math.max(0,Number(st.r)||5);
+  const saved=g*0.30*0.30;
+  const usd=saved/1000*r;
 
-$('monthlySaved').textContent = '$' + usd.toFixed(2);
-$('yearlySaved').textContent = '$' + (usd * 12).toFixed(2);
-$('gallonsSaved').textContent = Math.round(saved).toLocaleString();oFixed(2)} a year) on outdoor watering.`:'Enter last month’s gallons to see your estimate.';
- const tips=HABITS.filter(([k])=>!st.h[k]).slice(0,3).map(x=>x[2]),wk=st.wk;
- if(wk.length>=3){const last=wk[wk.length-1],avg=wk.slice(0,-1).reduce((a,b)=>a+b,0)/(wk.length-1);
-  if(last>avg*1.25)tips.unshift(`Your latest week (${last} gallons) is ${Math.round((last/avg-1)*100)}% above your average. Check irrigation lines, toilets and hoses for leaks.`)}
- $('tips').innerHTML=tips.map(t=>`<li>${t}</li>`).join('')||'<li>Great habits. Keep logging weekly usage to catch spikes early.</li>';
- $('wk').textContent=wk.length?'Weeks logged: '+wk.join(', ')+' gallons':'No weeks logged yet.';
+  $('res').innerHTML=g>0
+    ? `You could save about <b>${Math.round(saved).toLocaleString()} gallons</b> and <b>$${usd.toFixed(2)}</b> a month ($${(usd*12).toFixed(2)} a year) on outdoor watering.`
+    : 'Enter last month’s gallons to see your estimate.';
+
+  // Update the new savings cards, if they exist.
+  if($('monthlySaved')) $('monthlySaved').textContent='$'+usd.toFixed(2);
+  if($('yearlySaved')) $('yearlySaved').textContent='$'+(usd*12).toFixed(2);
+  if($('gallonsSaved')) $('gallonsSaved').textContent=Math.round(saved).toLocaleString();
+
+  // Restore personalized water-saving tips.
+  const tips=HABITS.filter(([k])=>!st.h[k]).slice(0,3).map(x=>x[2]);
+  const wk=st.wk;
+
+  if(wk.length>=3){
+    const last=wk[wk.length-1];
+    const avg=wk.slice(0,-1).reduce((a,b)=>a+b,0)/(wk.length-1);
+
+    if(avg>0 && last>avg*1.25){
+      tips.unshift(`Your latest week (${last} gallons) is ${Math.round((last/avg-1)*100)}% above your average. Check irrigation lines, toilets and hoses for leaks.`);
+    }
+  }
+
+  $('tips').innerHTML=tips.map(t=>`<li>${t}</li>`).join('')
+    || '<li>Great habits. Keep logging weekly usage to catch spikes early.</li>';
+
+  // Restore the weekly usage display.
+  $('wk').textContent=wk.length
+    ? 'Weeks logged: '+wk.join(', ')+' gallons'
+    : 'No weeks logged yet.';
 }
+
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='g')st.g=t.value;else if(t.id==='r')st.r=t.value;else if(t.dataset.k)st.h[t.dataset.k]=t.checked;else return;
  store.set('aq',st);render()});
