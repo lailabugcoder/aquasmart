@@ -240,7 +240,7 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
  </div>
  <div class="card"><h3>Your habits</h3><div id="habits"></div><h3 style="margin-top:16px">Tips for you</h3><ul id="tips"></ul></div>
 </div>
-<footer>Estimates assume about 30% of household water is used outdoors and that smart irrigation trims that by about 30%. Recommendations and tips come from simple rules. The optional AI advisor uses Google’s Gemini model. Your entries are saved in this browser, and also to your account when you are signed in. Watering rules shown are Broward County’s year-round schedule, and temporary drought orders can override them, so check sfwmd.gov. Built for the Congressional App Challenge 2026.</footer>
+<footer> The U.S. EPA guess assumes about at least 30% of household water is used outdoors and that smart irrigation trims that by about 30%. The irrigation calculator uses your own numbers and UF/IFAS conversion factors. Recommendations and tips come from simple rules. The optional AI advisor uses Google’s Gemini model. Your entries are saved in this browser, and also to your account when you are signed in. Watering rules shown are Broward County’s year-round schedule, and temporary drought orders can override them, so check sfwmd.gov. Built for the Congressional App Challenge 2026.</footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -712,6 +712,82 @@ aquaSupabase.auth.onAuthStateChange(() => {
 
 refreshAccountStatus();
 trackAquaEvent("page_view");
+
+ /* ---- Irrigation calculator (UF/IFAS conversion: 1 inch over 1 sq ft = 0.62337 gallons) ---- */
+(function () {
+  const h2 = [...document.querySelectorAll("h2")].find(h => h.textContent.includes("My water"));
+  if (!h2) return;
+  h2.insertAdjacentHTML("beforebegin", `
+<h2>Your irrigation calculator</h2>
+<div class="card" id="calc">
+  <h3>How do you measure your watering?</h3>
+  <select id="cm" class="calc" style="margin:4px 0 12px"><option value="flow">I know my flow rate (gallons per minute)</option><option value="area">I know my area and the inches I water</option><option value="volume">I know the gallons per watering</option></select>
+  <label><span id="csl"></span><input type="number" id="cs" class="calc" min="0" step="any"></label>
+  <div class="grid" style="margin-top:8px">
+    <div><h3>Your usual watering</h3><label><span id="cul"></span><input type="number" id="cu" class="calc" min="0" step="any"></label><label>Waterings per week<input type="number" id="cun" class="calc" min="0" step="any"></label></div>
+    <div><h3>This week's watering</h3><label><span id="cal"></span><input type="number" id="ca" class="calc" min="0" step="any"></label><label>Waterings per week<input type="number" id="can" class="calc" min="0" step="any"></label></div>
+  </div>
+  <p id="cres" style="font-weight:600"></p>
+  <p class="unit">Personalized estimate from the numbers you entered. Gallons from area and inches use 0.62337 gallons per square foot per inch (UF/IFAS) and assume 100% efficiency, so real systems deliver less to the plants. Savings compare this week with your usual watering, then assume every week matches it.</p>
+</div>`);
+
+  const L = { flow: ["Flow rate (gallons per minute)", "Minutes per watering"],
+              area: ["Watered area (square feet)", "Inches of water per watering"],
+              volume: [null, "Gallons per watering"] };
+
+  function calcResult(c, rate) {
+    const n = v => Math.max(0, Number(v) || 0), has = v => v !== undefined && v !== "" && isFinite(Number(v));
+    const m = c.m || "flow", sh = n(c.s);
+    const per = x => m === "flow" ? sh * x : m === "area" ? sh * x * 0.62337 : x;
+    const base = per(n(c.u)) * n(c.un), act = per(n(c.a)) * n(c.an);
+    if (!(base > 0 && has(c.a) && has(c.an))) return { ready: false };
+    const weekly = Math.max(0, base - act), monthly = weekly * 52 / 12, yearly = weekly * 52;
+    return { ready: true, base, act, weekly, monthly, yearly, over: act - base,
+             usdMonth: monthly / 1000 * rate, usdYear: yearly / 1000 * rate };
+  }
+
+  function renderCalc() {
+    const c = st.c || { m: "flow" }, m = c.m || "flow";
+    $("cm").value = m;
+    $("csl").textContent = L[m][0] || "";
+    $("cs").parentElement.hidden = !L[m][0];
+    $("cul").textContent = $("cal").textContent = L[m][1];
+    const f = document.activeElement;
+    if (!f || !f.classList.contains("calc")) {
+      [["cs", "s"], ["cu", "u"], ["cun", "un"], ["ca", "a"], ["can", "an"]].forEach(([id, k]) => { $(id).value = c[k] ?? ""; });
+    }
+    const r = calcResult(c, Math.max(0, Number(st.r) || 5));
+    const money = v => "$" + v.toFixed(2), gal = v => Math.round(v).toLocaleString();
+    const set = (id, text, note) => { $(id).textContent = text; $(id).nextElementSibling.textContent = note; };
+    if (!r.ready) {
+      set("monthlySaved", "—", "Fill in the irrigation calculator below");
+      set("yearlySaved", "—", "Calculated from your own numbers");
+      set("gallonsSaved", "—", "Gallons per month");
+      $("cres").textContent = "Enter your usual watering and this week's watering to see your savings.";
+    } else {
+      set("monthlySaved", money(r.usdMonth), "Estimated, if every week matches this one");
+      set("yearlySaved", money(r.usdYear), "Estimated, if every week matches this one");
+      set("gallonsSaved", gal(r.monthly), "Gallons per month, estimated");
+      $("cres").innerHTML = r.weekly > 0
+        ? `This week you used <b>${gal(r.act)}</b> gallons instead of your usual <b>${gal(r.base)}</b>, saving about <b>${gal(r.weekly)} gallons</b>.`
+        : r.over > 0 ? `This week you used <b>${gal(r.over)}</b> more gallons than usual, so no savings are counted.`
+        : "This week matches your usual watering, so no savings are counted.";
+    }
+    $("res").innerHTML = $("res").innerHTML.replace("You could save about", "As a rough guess from your bill, you could save about");
+  }
+
+  document.addEventListener("input", e => {
+    const t = e.target, map = { cm: "m", cs: "s", cu: "u", cun: "un", ca: "a", can: "an" };
+    if (!t.classList || !t.classList.contains("calc")) return;
+    if (t.id === "cm") st.c = { m: t.value }; else { st.c = st.c || { m: "flow" }; st.c[map[t.id]] = t.value; }
+    store.set("aq", st);
+    render();
+  });
+
+  const _render = render;
+  render = function () { _render(); renderCalc(); };
+  render();
+})();
  /* ---- Per-account data ---- */
 let aquaKey = "aq", aquaUser = null, cloudTimer = null;
 const _origStoreSet = store.set;
