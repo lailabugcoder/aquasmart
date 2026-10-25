@@ -103,6 +103,55 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 #aitext{white-space:pre-line;line-height:1.55;margin:6px 0 14px}
 #aibox button{background:#fff;color:#1d1a8c}
 .ainote{font-size:.75rem;opacity:.85;margin:12px 0 0}
+
+
+.account-panel {
+  margin: 18px 0;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(41, 37, 31, 0.15);
+  border-radius: 16px;
+}
+
+.account-panel h2 {
+  margin-top: 0;
+}
+
+.account-panel label {
+  display: block;
+  margin: 12px 0 5px;
+  font-size: 0.9rem;
+}
+
+.account-panel input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfc5b3;
+  border-radius: 9px;
+  background: #fffdf8;
+  color: #29251f;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.account-actions button {
+  padding: 9px 13px;
+  border: 1px solid #cfc5b3;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+#account-status {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
 </style>
 </head>
 <body>
@@ -116,6 +165,34 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 <p class="sub">Live weather for Pembroke Pines, Florida, plus optional Raspberry Pi sensors that tell you when your plants actually need water.</p>
 <span class="pill" id="badge">Loading…</span>
 <p style="color:#fff;margin:14px 0 0"><label style="display:inline">What are you watering?<select id="plant"><option value="lawn">St. Augustine lawn</option><option value="hibiscus">Hibiscus</option><option value="areca">Areca palm</option><option value="garden">Vegetable garden</option><option value="native">Florida-friendly natives</option><option value="succulent">Succulents</option></select></label> <label style="display:inline;margin-left:14px">My street number is<select id="addr"><option value="">not set</option><option value="odd">odd</option><option value="even">even</option></select></label> <button id="demobtn" style="margin-left:14px">Preview with demo Pi data</button></p>
+
+ 
+<section id="account-panel" class="account-panel">
+  <h2>Save Your AquaSmart Progress</h2>
+  <p>
+    Use AquaSmart without an account, or sign in to save your
+    water usage, savings, habits, and plant history across devices.
+  </p>
+
+  <label for="account-email">Email</label>
+  <input id="account-email" type="email" autocomplete="email"
+         placeholder="you@example.com">
+
+  <label for="account-password">Password</label>
+  <input id="account-password" type="password"
+         autocomplete="current-password" minlength="8"
+         placeholder="At least 8 characters">
+
+  <div class="account-actions">
+    <button id="account-signup" type="button">Create account</button>
+    <button id="account-login" type="button">Sign in</button>
+    <button id="account-logout" type="button" hidden>Sign out</button>
+  </div>
+
+  <p id="account-status" role="status" aria-live="polite">
+    You're browsing without an account.
+  </p>
+</section>
 
 <h2>Live conditions</h2>
 <div class="grid">
@@ -325,5 +402,310 @@ render();load();setInterval(load,20000);
   drawHabits();drawTips();
 })();
 </script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ 
+const aquaSupabase = window.supabase.createClient(
+  "PASTE_YOUR_SUPABASE_PROJECT_URL",
+  "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY"
+);
+
+const accountStatus = document.getElementById("account-status");
+const emailInput = document.getElementById("account-email");
+const passwordInput = document.getElementById("account-password");
+const signUpButton = document.getElementById("account-signup");
+const signInButton = document.getElementById("account-login");
+const signOutButton = document.getElementById("account-logout");
+
+function showAccountStatus(message) {
+  accountStatus.textContent = message;
+}
+
+async function refreshAccountStatus() {
+  const { data, error } = await aquaSupabase.auth.getUser();
+
+  if (error || !data.user) {
+    signOutButton.hidden = true;
+    signUpButton.hidden = false;
+    signInButton.hidden = false;
+    showAccountStatus("You're browsing without an account.");
+    return;
+  }
+
+  signOutButton.hidden = false;
+  signUpButton.hidden = true;
+  signInButton.hidden = true;
+  showAccountStatus("Signed in as " + data.user.email);
+}
+
+signUpButton.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || password.length < 8) {
+    showAccountStatus("Enter an email and a password with at least 8 characters.");
+    return;
+  }
+
+  showAccountStatus("Creating your account...");
+
+  const { data, error } = await aquaSupabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: window.location.origin
+    }
+  });
+
+  if (error) {
+    showAccountStatus(error.message);
+    return;
+  }
+
+  if (data.session) {
+    await refreshAccountStatus();
+    showAccountStatus("Account created. You're signed in.");
+  } else {
+    showAccountStatus(
+      "Account request received. Check your email to confirm, then sign in."
+    );
+  }
+});
+
+signInButton.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    showAccountStatus("Enter your email and password.");
+    return;
+  }
+
+  showAccountStatus("Signing in...");
+
+  const { error } = await aquaSupabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    showAccountStatus(error.message);
+    return;
+  }
+
+  await refreshAccountStatus();
+});
+
+signOutButton.addEventListener("click", async () => {
+  const { error } = await aquaSupabase.auth.signOut();
+
+  if (error) {
+    showAccountStatus(error.message);
+    return;
+  }
+
+  await refreshAccountStatus();
+});
+
+async function getAquaUser() {
+  const { data, error } = await aquaSupabase.auth.getUser();
+
+  if (error) throw error;
+  return data.user;
+}
+
+async function saveWeeklyUsage({ gallons, week_start = null }) {
+  const user = await getAquaUser();
+  if (!user) return { saved: false, reason: "not_signed_in" };
+
+  const { data, error } = await aquaSupabase
+    .from("weekly_usage")
+    .insert({
+      user_id: user.id,
+      gallons: Number(gallons),
+      week_start
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { saved: true, data };
+}
+
+async function saveSavings({
+  gallons_saved,
+  monthly_saved,
+  yearly_saved
+}) {
+  const user = await getAquaUser();
+  if (!user) return { saved: false, reason: "not_signed_in" };
+
+  const { data, error } = await aquaSupabase
+    .from("savings_snapshots")
+    .insert({
+      user_id: user.id,
+      gallons_saved: Number(gallons_saved),
+      monthly_saved: Number(monthly_saved),
+      yearly_saved: Number(yearly_saved)
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { saved: true, data };
+}
+
+async function saveHabit({ habit_key, completed, completed_on }) {
+  const user = await getAquaUser();
+  if (!user) return { saved: false, reason: "not_signed_in" };
+
+  const { data, error } = await aquaSupabase
+    .from("habits")
+    .upsert({
+      user_id: user.id,
+      habit_key,
+      completed: Boolean(completed),
+      completed_on
+    }, {
+      onConflict: "user_id,habit_key,completed_on"
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { saved: true, data };
+}
+
+async function savePlantSelection(plant_key) {
+  const user = await getAquaUser();
+  if (!user) return { saved: false, reason: "not_signed_in" };
+
+  const { data, error } = await aquaSupabase
+    .from("plant_selections")
+    .upsert({
+      user_id: user.id,
+      plant_key,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: "user_id"
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { saved: true, data };
+}
+
+async function saveWateringHistory({
+  plant_key,
+  recommendation,
+  watering_action = null,
+  soil_moisture_pct = null,
+  weather_summary = {},
+  is_simulated = false
+}) {
+  const user = await getAquaUser();
+  if (!user) return { saved: false, reason: "not_signed_in" };
+
+  const { data, error } = await aquaSupabase
+    .from("watering_history")
+    .insert({
+      user_id: user.id,
+      plant_key,
+      recommendation,
+      watering_action,
+      soil_moisture_pct,
+      weather_summary,
+      is_simulated
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { saved: true, data };
+}
+
+async function loadAquaProgress() {
+  const user = await getAquaUser();
+
+  if (!user) {
+    return { signedIn: false };
+  }
+
+  const [weekly, savings, habits, plant, watering] = await Promise.all([
+    aquaSupabase.from("weekly_usage")
+      .select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(100),
+
+    aquaSupabase.from("savings_snapshots")
+      .select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(100),
+
+    aquaSupabase.from("habits")
+      .select("*").eq("user_id", user.id)
+      .order("completed_on", { ascending: false }).limit(300),
+
+    aquaSupabase.from("plant_selections")
+      .select("*").eq("user_id", user.id).maybeSingle(),
+
+    aquaSupabase.from("watering_history")
+      .select("*").eq("user_id", user.id)
+      .order("created_at", { ascending: false }).limit(100)
+  ]);
+
+  for (const result of [weekly, savings, habits, plant, watering]) {
+    if (result.error) throw result.error;
+  }
+
+  return {
+    signedIn: true,
+    weeklyUsage: weekly.data,
+    savings: savings.data,
+    habits: habits.data,
+    plantSelection: plant.data,
+    wateringHistory: watering.data
+  };
+}
+
+async function trackAquaEvent(event) {
+  const allowed = [
+    "page_view",
+    "advisor_used",
+    "weekly_log_added",
+    "habit_toggled",
+    "plant_selected",
+    "watering_recommendation_viewed"
+  ];
+
+  if (!allowed.includes(event)) return;
+
+  try {
+    await fetch("/api/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event })
+    });
+  } catch (error) {
+    // Analytics failure should never break the AquaSmart dashboard.
+  }
+}
+
+window.aquaStorage = {
+  saveWeeklyUsage,
+  saveSavings,
+  saveHabit,
+  savePlantSelection,
+  saveWateringHistory,
+  loadProgress: loadAquaProgress,
+  trackEvent: trackAquaEvent
+};
+
+aquaSupabase.auth.onAuthStateChange(() => {
+  // Keep this callback lightweight.
+  setTimeout(() => refreshAccountStatus(), 0);
+});
+
+refreshAccountStatus();
+trackAquaEvent("page_view");
+
 </body>
 </html>
