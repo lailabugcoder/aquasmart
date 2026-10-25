@@ -109,7 +109,7 @@ def snapshot(plant, addr, demo):
     if rule and level == "water" and not rule[0]:
         level, msg = "hold", "Soil is dry, but county rules do not allow watering right now. " + rule[1]
     return dict(w=w, f=f, last=last, hist=hist, online=online, soil=soil, level=level, msg=msg,
-                rule=rule[1] if rule else None, plant=plant, demo=demo)
+                rule=(("Once it is dry again: " if level == "skip" and rule else "") + rule[1]) if rule else None, plant=plant, demo=demo)
 
 
 @app.route("/")
