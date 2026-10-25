@@ -172,7 +172,7 @@ async function load(){
   $('fill').style.height=(p.soil!=null?Math.max(4,p.soil):0)+'%';
   $('badge').textContent=s.online?'● Raspberry Pi online':'Weather only. Pi sensors are optional.';
   $('rec').className='card rec '+s.level;$('recmsg').textContent=s.message;
-  const f=s.forecast;$('rc').textContent=f?f.rain_chance:'—';$('rcu').textContent=f&&f.hours!=null?`percent, rain likely in about ${f.hours} hours`:'percent chance of rain';
+  const f=s.forecast;$('rc').textContent=f?f.rain_chance:'—';$('rcu').textContent=f&&f.hours!=null?`percent, rain likely in about ${f.hours} hour${f.hours===1?'':'s'};
   $('aibox').hidden=!s.ai;
   $('rule').textContent=s.rule||'Pick odd or even above to see your Broward watering rules.';$('tip').textContent=s.tip;
   if(s.demo)$('badge').textContent='Demo mode: simulated Pi data';
