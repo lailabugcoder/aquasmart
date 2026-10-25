@@ -2,8 +2,6 @@ import math, os, time, requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import Flask, jsonify, request, send_file
-import os
-from flask import request, jsonify
 from supabase import create_client
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
