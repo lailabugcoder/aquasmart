@@ -172,6 +172,10 @@ def advice():
                                             "messages": [{"role": "system", "content": system},
                                                          {"role": "user", "content": facts}]}, timeout=14)
                     body = r.json() if r.content else {}
+                    if isinstance(body, list):                   # some providers wrap errors in a list
+                        body = body[0] if body else {}
+                    if not isinstance(body, dict):
+                        body = {}
                     text = ((body.get("choices") or [{}])[0].get("message", {}).get("content") or "").strip() if r.ok else ""
                     if text:
                         return jsonify(advice=text)
