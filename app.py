@@ -11,6 +11,9 @@ AI_KEY = os.environ.get("ANTHROPIC_API_KEY", "")           # optional: turns on 
 MODEL = os.environ.get("AI_MODEL", "claude-sonnet-5-5")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")                 # optional: free AI advisor through Hugging Face
 HF_MODEL = os.environ.get("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+LLM_KEY = os.environ.get("LLM_API_KEY", "")                # any OpenAI-compatible provider (Gemini, OpenRouter, ...)
+LLM_URL = os.environ.get("LLM_BASE_URL", "").rstrip("/")
+LLM_MODEL = os.environ.get("LLM_MODEL", "")
 HISTORY, WX, FX, AI_CALLS = [], {"t": 0, "d": None}, {"t": 0, "d": None}, []
 OWM = "https://api.openweathermap.org/data/2.5/"
 # name: (too dry below %, too wet above %, care tip). Starting values: calibrate with your own sensor.
@@ -133,12 +136,12 @@ def state():
     s = snapshot(a.get("plant"), a.get("addr"), a.get("demo") == "1")
     return jsonify(weather=s["w"], forecast=s["f"], pi=s["last"] if s["online"] else None, online=s["online"],
                    demo=s["demo"], history=s["hist"], level=s["level"], message=s["msg"], rule=s["rule"],
-                   tip=PLANTS[s["plant"]][2], ai=bool(AI_KEY or HF_TOKEN))
+                   tip=PLANTS[s["plant"]][2], ai=bool(AI_KEY or HF_TOKEN or LLM_KEY))
 
 
 @app.route("/api/advice", methods=["POST"])
 def advice():
-    if not (AI_KEY or HF_TOKEN):
+    if not (AI_KEY or HF_TOKEN or LLM_KEY):
         return jsonify(error="The AI advisor is not turned on for this site."), 503
     now = time.time()
     AI_CALLS[:] = [t for t in AI_CALLS if now - t < 3600]
@@ -154,15 +157,20 @@ def advice():
     system = ("You advise South Florida homeowners on watering. Use only the facts given. "
               "Write 3 short, specific tips, under 90 words total, in plain sentences. Never invent numbers.")
     try:
-        if HF_TOKEN:                                     # Hugging Face is used first because it has a free tier
+        provider = None
+        if LLM_KEY and LLM_URL and LLM_MODEL:            # free provider chosen in Render settings
+            provider = (LLM_URL, LLM_KEY, [LLM_MODEL])
+        elif HF_TOKEN:
+            provider = ("https://router.huggingface.co/v1", HF_TOKEN, list(dict.fromkeys([HF_MODEL, "deepseek-ai/DeepSeek-V3-0324"])))
+        if provider:
+            base, key, models = provider
             err = ""
-            for m in dict.fromkeys([HF_MODEL, "deepseek-ai/DeepSeek-V3-0324"]):   # try the chosen model, then a backup
+            for m in models:
                 try:
-                    r = requests.post("https://router.huggingface.co/v1/chat/completions",
-                                      headers={"Authorization": f"Bearer {HF_TOKEN}"},
-                                      json={"model": m, "max_tokens": 400,
+                    r = requests.post(base + "/chat/completions", headers={"Authorization": f"Bearer {key}"},
+                                      json={"model": m, "max_tokens": 800,
                                             "messages": [{"role": "system", "content": system},
-                                                         {"role": "user", "content": facts}]}, timeout=12)
+                                                         {"role": "user", "content": facts}]}, timeout=14)
                     body = r.json() if r.content else {}
                     text = ((body.get("choices") or [{}])[0].get("message", {}).get("content") or "").strip() if r.ok else ""
                     if text:
@@ -170,7 +178,7 @@ def advice():
                     err = f"{m}: HTTP {r.status_code} {str(body.get('error', body))[:150]}"
                 except Exception as e:
                     err = f"{m}: {type(e).__name__}"
-                print("HF advisor error:", err, flush=True)
+                print("AI advisor error:", err, flush=True)
             return jsonify(error="The advisor could not respond. Details: " + err), 502
         r = requests.post("https://api.anthropic.com/v1/messages",
                           headers={"x-api-key": AI_KEY, "anthropic-version": "2023-06-01"},
