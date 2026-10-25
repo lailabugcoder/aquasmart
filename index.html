@@ -6,6 +6,61 @@
 <title>AquaSmart: smart irrigation for South Florida</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+ 
+/* Weekly water usage history */
+.week-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.week-entry {
+  background: rgba(255,255,255,.75);
+  border: 1px solid rgba(29,26,140,.12);
+  border-radius: 15px;
+  padding: 12px 14px;
+}
+
+.week-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.week-label {
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.week-total {
+  font-weight: 800;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.week-track {
+  height: 8px;
+  background: rgba(29,26,140,.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.week-bar {
+  height: 100%;
+  background: linear-gradient(90deg,#00b894,#4a3cff);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+.week-change {
+  font-size: .78rem;
+  opacity: .8;
+  margin-top: 6px;
+}
+
 <style>
 :root{--ink:#1d1a8c;--card:rgba(255,255,255,.8)}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -93,7 +148,7 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
   <p id="res"></p>
   <label>Log this week's gallons<input type="number" id="w" min="0" placeholder="2100"></label>
   <button id="addwk">Add week</button> <button id="printbtn" style="margin-left:8px">Save my report as PDF</button>
-  <p class="unit" id="wk"></p>
+<div id="wk" class="week-history"></div>
  </div>
  <div class="card"><h3>Your habits</h3><div id="habits"></div><h3 style="margin-top:16px">Tips for you</h3><ul id="tips"></ul></div>
 </div>
@@ -166,9 +221,45 @@ function render(){
     || '<li>Great habits. Keep logging weekly usage to catch spikes early.</li>';
 
   // Restore the weekly usage display.
-  $('wk').textContent=wk.length
-    ? 'Weeks logged: '+wk.join(', ')+' gallons'
-    : 'No weeks logged yet.';
+
+if(wk.length === 0){
+  $('wk').innerHTML =
+    '<p class="unit">No weeks logged yet. Add your first weekly reading above!</p>';
+} else {
+  const maxGallons = Math.max(...wk, 1);
+
+  $('wk').innerHTML = [...wk].reverse().map((g, i, arr) => {
+    const originalIndex = wk.length - 1 - i;
+    const previous = wk[originalIndex - 1];
+    let change = 'First recorded week';
+
+    if(previous !== undefined && previous > 0){
+      const percent = Math.round((g / previous - 1) * 100);
+
+      change = percent < 0
+        ? `↓ ${Math.abs(percent)}% less than previous week`
+        : percent > 0
+          ? `↑ ${percent}% more than previous week`
+          : 'Same usage as previous week';
+    }
+
+    return `
+      <div class="week-entry">
+        <div class="week-top">
+          <span class="week-label">Week ${originalIndex + 1}</span>
+          <span class="week-total">${g.toLocaleString()} gal</span>
+        </div>
+        <div class="week-track">
+          <div class="week-bar"
+               style="width:${Math.min(100, g / maxGallons * 100)}%">
+          </div>
+        </div>
+        <div class="week-change">${change}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 }
 
 document.addEventListener('input',e=>{const t=e.target;
