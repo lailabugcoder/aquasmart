@@ -168,9 +168,11 @@ def advice():
             for m in models:
                 try:
                     r = requests.post(base + "/chat/completions", headers={"Authorization": f"Bearer {key}"},
-                                      json={"model": m, "max_tokens": 800,
+                                      json={"model": m, "max_tokens": 1500,   # room for the model to think and still answer
+                                           
                                             "messages": [{"role": "system", "content": system},
-                                                         {"role": "user", "content": facts}]}, timeout=14)
+                                                         {"role": "user", "content": facts}]},
+                                      timeout=25 if len(models) == 1 else 14)
                     body = r.json() if r.content else {}
                     if isinstance(body, list):                   # some providers wrap errors in a list
                         body = body[0] if body else {}
