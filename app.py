@@ -151,11 +151,17 @@ def advice():
     d = request.get_json(silent=True) or {}
     s = snapshot(d.get("plant"), d.get("addr"), bool(d.get("demo")))
     soil_txt = f"{round(s['soil'])}%" if s["soil"] is not None else "no sensor connected"
-    facts = (f"Location: {CITY}, Florida. Plant: {s['plant']}. Weather now: {s['w']}. Next 24 hours: {s['f']}. "
-             f"Soil moisture: {soil_txt}. County watering rule: {s['rule'] or 'address not given'}. "
-             f"Rule-based recommendation: {s['msg']}")
-    system = ("You advise South Florida homeowners on watering. Use only the facts given. "
-              "Write 3 short, specific tips, under 90 words total, in plain sentences. Never invent numbers.")
+    names = {"lawn": "St. Augustine lawn", "hibiscus": "hibiscus", "areca": "areca palm",
+             "garden": "vegetable garden", "native": "Florida-friendly native plants", "succulent": "succulents"}
+    names = {"lawn": "St. Augustine lawn", "hibiscus": "hibiscus", "areca": "areca palm", "garden": "vegetable garden",
+             "native": "Florida-friendly native plants", "succulent": "succulents"}
+    facts = (f"Location: {CITY}, Florida. Plant: {names[s['plant']]}. Weather now: {s['w']}. "
+             f"Next 24 hours: {s['f']}. Soil moisture: {soil_txt}.")
+    system = ("You are the AI advisor inside AquaSmart, a watering app for South Florida homeowners. "
+              "The app already tells the user whether to water today and shows the county watering schedule, "
+              "so never repeat either one. Using only the facts given, write exactly 3 short tips, one per line, "
+              "each starting with '- ': plant-specific care, how to use the coming weather (for example "
+              "preparing for rain or heat), and one thing to check this week. Under 80 words total. Never invent numbers.")
     try:
         provider = None
         if LLM_KEY and LLM_URL and LLM_MODEL:            # free provider chosen in Render settings
@@ -168,7 +174,7 @@ def advice():
             for m in models:
                 try:
                     r = requests.post(base + "/chat/completions", headers={"Authorization": f"Bearer {key}"},
-                                      json={"model": m, "max_tokens": 1500,   # room for the model to think and still answer
+                                      json={"model": m, "max_tokens": 1500, "temperature": 0.8,   # room for the model to think and still answer
                                            
                                             "messages": [{"role": "system", "content": system},
                                                          {"role": "user", "content": facts}]},
