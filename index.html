@@ -152,6 +152,124 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
   overflow-wrap: anywhere;
 }
 
+ 
+/* Sticky section navigation */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0;
+  margin: 14px 0 20px;
+  background: rgba(255, 253, 248, 0.96);
+  border-bottom: 1px solid #cfc5b3;
+  scrollbar-width: thin;
+}
+
+.section-nav a {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: #e8dcc5;
+  color: #29251f;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.section-nav a:hover,
+.section-nav a:focus-visible {
+  background: #d2e4cf;
+  outline: 2px solid #536b4b;
+  outline-offset: 2px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+h2[id],
+section[id] {
+  scroll-margin-top: 85px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Collapsible account panel */
+.account-details {
+  margin: 18px 0;
+  border: 1px solid #cfc5b3;
+  border-radius: 16px;
+  background: rgba(255, 253, 248, 0.94);
+  color: #29251f;
+}
+
+.account-details > summary {
+  cursor: pointer;
+  padding: 16px;
+  font-weight: 700;
+}
+
+.account-details[open] {
+  padding-bottom: 8px;
+}
+
+.account-details .account-panel {
+  margin-top: 0;
+  background: transparent;
+  border: 0;
+}
+
+/* Community board */
+.community-intro {
+  line-height: 1.5;
+}
+
+.community-stat {
+  font-size: 2rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.community-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ded5c6;
+}
+
+.community-row:last-child {
+  border-bottom: 0;
+}
+
+.community-row span:last-child {
+  font-weight: 700;
+  text-align: right;
+}
+
+.community-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin: 5px 0 12px;
+  border: 1px solid #cfc5b3;
+  border-radius: 9px;
+  font: inherit;
+}
+
+.community-note {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 </style>
 </head>
 <body>
@@ -167,7 +285,9 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 
 
  
-<section id="account-panel" class="account-panel">
+<details class="account-details" id="account">
+  <summary>👤 Account — Sign in to save your progress</summary>
+  <section id="account-panel" class="account-panel">
   <h2>Save Your AquaSmart Progress</h2>
   <p>
     Use AquaSmart without an account, or sign in to save your
@@ -189,14 +309,25 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
     <button id="account-logout" type="button" hidden>Sign out</button>
   </div>
 
-  <p id="account-status" role="status" aria-live="polite">
-    You're browsing without an account.
-  </p>
-</section>
+<p id="account-status" role="status" aria-live="polite">
+  You're browsing without an account.
+</p>
+  </section>
+</details>
 
 <p style="color:#fff;margin:14px 0 0"><label style="display:inline">What are you watering?<select id="plant"><option value="lawn">St. Augustine lawn</option><option value="hibiscus">Hibiscus</option><option value="areca">Areca palm</option><option value="garden">Vegetable garden</option><option value="native">Florida-friendly natives</option><option value="succulent">Succulents</option></select></label> <label style="display:inline;margin-left:14px">My street number is<select id="addr"><option value="">not set</option><option value="odd">odd</option><option value="even">even</option></select></label> <button id="demobtn" style="margin-left:14px">Preview with demo Pi data</button></p>
+
  
-<h2>Live conditions</h2>
+<nav class="section-nav" aria-label="Page sections">
+  <a href="#today">Today</a>
+  <a href="#savings">Savings</a>
+  <a href="#my-water">My Water</a>
+  <a href="#community">Community</a>
+  <a href="#account">Account</a>
+</nav>
+
+ 
+<h2 id="today">Live conditions</h2>
 <div class="grid">
  <div class="card"><h3>Outside temperature</h3><div class="num" id="ot">—</div><div class="unit">°F, <span id="desc">checking weather</span></div></div>
  <div class="card"><h3>Outside humidity</h3><div class="num" id="oh">—</div><div class="unit">percent</div></div>
@@ -210,7 +341,7 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 <div class="card" id="chartcard" hidden style="margin-top:14px"><h3>Sensor history from the Pi</h3><canvas id="chart" height="110"></canvas></div>
 <p><button id="leakbtn">Try the leak alert demo</button></p>
 
- <h2>💧 Your Water Savings</h2>
+<h2 id="savings">💧 Your Water Savings</h2>
 <div class="grid">
   <div class="card">
     <h3>Estimated monthly savings</h3>
@@ -228,7 +359,67 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
     <div class="unit">Gallons per month</div>
   </div>
 </div>
-<h2>My water, no hardware needed</h2>
+ 
+<section id="community">
+  <h2>🌎 AquaSmart Community</h2>
+
+  <p class="community-intro">
+    See how our community is working toward smarter water use.
+    Rankings are based on self-reported estimated savings, not
+    independently measured water consumption.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Community estimated savings</h3>
+      <div class="community-stat" id="community-total">—</div>
+      <div class="unit">Gallons reported by participating users</div>
+    </div>
+
+    <div class="card">
+      <h3>Participants</h3>
+      <div class="community-stat" id="community-count">—</div>
+      <div class="unit">Accounts with a community entry</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>🏆 Community leaderboard</h3>
+    <p class="community-note">
+      Nicknames and self-reported estimates are public on this board.
+      Do not use your email address or other identifying information
+      as your nickname.
+    </p>
+    <div id="community-ranking" aria-live="polite">
+      Loading community board…
+    </div>
+  </div>
+
+  <div class="card community-form" style="margin-top:14px">
+    <h3>Join the community board</h3>
+    <p>
+      Sign in, choose a nickname, and enter your own cumulative
+      estimated gallons saved. Only enter an amount you can reasonably
+      explain from your watering records.
+    </p>
+
+    <label for="community-nickname">Public nickname</label>
+    <input id="community-nickname" maxlength="24"
+           placeholder="e.g. GardenGuardian">
+
+    <label for="community-gallons">Estimated gallons saved</label>
+    <input id="community-gallons" type="number" min="0" step="1"
+           placeholder="e.g. 40">
+
+    <button id="community-submit" type="button">
+      Save my community entry
+    </button>
+
+    <p id="community-status" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<h2 id="my-water">My water, no hardware needed</h2>
 <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
  <div class="card"><h3>Your numbers</h3>
   <label>Gallons used last month<input type="number" id="g" min="0" placeholder="9000"></label>
@@ -712,6 +903,109 @@ aquaSupabase.auth.onAuthStateChange(() => {
 
 refreshAccountStatus();
 trackAquaEvent("page_view");
+ 
+async function loadCommunityBoard() {
+  const ranking = document.getElementById("community-ranking");
+  const total = document.getElementById("community-total");
+  const count = document.getElementById("community-count");
+
+  try {
+    const { data, error } = await aquaSupabase.rpc("get_community_board");
+    if (error) throw error;
+
+    const entries = data || [];
+    const gallons = entries.reduce(
+      (sum, entry) => sum + Number(entry.gallons_saved || 0),
+      0
+    );
+
+    total.textContent = Math.round(gallons).toLocaleString() + " gal";
+    count.textContent = entries.length.toLocaleString();
+
+    if (!entries.length) {
+      ranking.textContent = "No community entries yet. Be the first!";
+      return;
+    }
+
+    ranking.replaceChildren();
+
+    entries.forEach((entry, index) => {
+      const row = document.createElement("div");
+      row.className = "community-row";
+
+      const name = document.createElement("span");
+      name.textContent = `${index + 1}. ${entry.nickname}`;
+
+      const value = document.createElement("span");
+      value.textContent =
+        Math.round(Number(entry.gallons_saved)).toLocaleString() + " gal";
+
+      row.append(name, value);
+      ranking.appendChild(row);
+    });
+  } catch (error) {
+    total.textContent = "Unavailable";
+    count.textContent = "—";
+    ranking.textContent =
+      "The community board could not load. Check the Supabase setup and try again.";
+    console.error("Community board loading failed:", error);
+  }
+}
+
+document.getElementById("community-submit").addEventListener("click", async () => {
+  const status = document.getElementById("community-status");
+  const nickname = document.getElementById("community-nickname").value.trim();
+  const gallons = Number(document.getElementById("community-gallons").value);
+
+  if (!nickname || nickname.length > 24) {
+    status.textContent = "Choose a nickname between 1 and 24 characters.";
+    return;
+  }
+
+  if (
+    document.getElementById("community-gallons").value.trim() === "" ||
+    !Number.isFinite(gallons) ||
+    gallons < 0
+  ) {
+    status.textContent = "Enter a valid nonnegative gallons-saved estimate.";
+    return;
+  }
+
+  try {
+    const { data: userResult, error: userError } =
+      await aquaSupabase.auth.getUser();
+
+    if (userError) throw userError;
+
+    if (!userResult.user) {
+      status.textContent = "Please sign in using the Account section first.";
+      return;
+    }
+
+    status.textContent = "Saving your entry…";
+
+    const { error } = await aquaSupabase
+      .from("community_board_entries")
+      .upsert({
+        user_id: userResult.user.id,
+        nickname,
+        gallons_saved: gallons,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "user_id" });
+
+    if (error) throw error;
+
+    status.textContent = "Entry saved. Your nickname and estimate are public.";
+    await loadCommunityBoard();
+  } catch (error) {
+    console.error("Community entry save failed:", error);
+    status.textContent =
+      "Could not save your entry. Check your sign-in and Supabase setup.";
+  }
+});
+
+loadCommunityBoard();
+
 
  /* ---- Irrigation calculator (UF/IFAS conversion: 1 inch over 1 sq ft = 0.62337 gallons) ---- */
 (function () {
