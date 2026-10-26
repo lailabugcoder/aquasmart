@@ -131,7 +131,7 @@ def recommend(w, soil, f, plant):
     if w and w["rain"]:
         return "skip", "Rain detected. Skip watering today."
     if f and f["rain_chance"] >= 60 and f["hours"] is not None and f["hours"] <= 12:
-        return "hold", f"Rain is likely in about {f['hours']} hours ({f['rain_chance']}% chance). Hold off and let the rain do the work."
+        return "hold", f"Rain is likely in about {f['hours']} hour{'' if f['hours'] == 1 else 's'} ({f['rain_chance']}% chance). Hold off and let the rain do the work."
     if soil is not None:
         if soil < low:
             return "water", f"Soil is dry ({round(soil)}%) for your {plant}. Water now, ideally early morning."
