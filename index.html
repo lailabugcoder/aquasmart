@@ -105,21 +105,31 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 .ainote{font-size:.75rem;opacity:.85;margin:12px 0 0}
 
 
+
 .account-panel {
   margin: 18px 0;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(41, 37, 31, 0.15);
+  background: rgba(35, 36, 115, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(20, 20, 90, 0.12);
+  backdrop-filter: blur(12px);
 }
 
 .account-panel h2 {
   margin-top: 0;
+  color: #fff;
+}
+
+.account-panel p {
+  color: #f0f5ff;
 }
 
 .account-panel label {
   display: block;
   margin: 12px 0 5px;
+  color: #fff;
   font-size: 0.9rem;
 }
 
@@ -127,10 +137,10 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
   box-sizing: border-box;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #cfc5b3;
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 9px;
-  background: #fffdf8;
-  color: #29251f;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1d1a8c;
 }
 
 .account-actions {
@@ -142,14 +152,42 @@ footer{color:#eef8ff;font-size:.8rem;margin-top:34px;max-width:70ch}
 
 .account-actions button {
   padding: 9px 13px;
-  border: 1px solid #cfc5b3;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 9px;
   cursor: pointer;
 }
 
 #account-status {
+  color: #fff;
   font-size: 0.9rem;
   overflow-wrap: anywhere;
+}
+
+.account-details {
+  margin: 18px 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 16px;
+  background: rgba(35, 36, 115, 0.32);
+  color: #fff;
+  backdrop-filter: blur(12px);
+}
+
+.account-details > summary {
+  padding: 16px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+}
+
+.account-details[open] {
+  padding-bottom: 8px;
+}
+
+.account-details .account-panel {
+  margin-top: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
  
@@ -997,11 +1035,16 @@ document.getElementById("community-submit").addEventListener("click", async () =
 
     status.textContent = "Entry saved. Your nickname and estimate are public.";
     await loadCommunityBoard();
+ 
   } catch (error) {
     console.error("Community entry save failed:", error);
-    status.textContent =
-      "Could not save your entry. Check your sign-in and Supabase setup.";
+
+    const details = error?.message || "Unknown error";
+    const code = error?.code ? ` (code: ${error.code})` : "";
+
+    status.textContent = `Could not save: ${details}${code}`;
   }
+
 });
 
 loadCommunityBoard();
